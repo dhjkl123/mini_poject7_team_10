@@ -1,0 +1,88 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+<!-- Override extrahead to add Chart.js -->
+{% block extrahead %}
+{{ block.super }}
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const ctx = document.getElementById('myChart').getContext('2d');
+
+  function random_bg_color() {
+    var x = Math.floor(Math.random() * 256);
+    var y = Math.floor(Math.random() * 256);
+    var z = Math.floor(Math.random() * 256);
+    var bgColor = "rgba(" + x + "," + y + "," + z + "," + "0.5" + ")";
+    return bgColor
+  }
+
+  colors = []
+
+
+
+  // Sample data
+  const chartData = {{ chart_data | safe }};
+
+  console.log(chartData)
+
+  model_name = [];
+  model_acc = [];
+  var step;
+
+  for (step=0; step < chartData.length; step++)
+  {
+    model_name.push(chartData[step]['model_name']);
+    model_acc.push(chartData[step]['acc']);
+    console.log(step)
+  }
+
+  for (step = 0; step < chartData.length; step++) {
+    colors.push(random_bg_color())
+  }
+
+  // Render the chart
+  const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels : model_name,
+      datasets: [
+        {
+          label: 'Accuracy',
+          data: model_acc,
+          //backgroundColor: 'rgba(220,20,20,0.5)',
+          backgroundColor: colors,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      scales: { 
+        yAxes: [
+          {
+            ticks: {
+              beginAtZero: true,
+            },
+          },
+        ],
+      },
+    },
+  });
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Render our chart -->
+<p>{{modelperformance.model_name}}</p>
+
+<div style="width: 80%;">
+  <canvas style="margin-bottom: 30px; width: 60%; height: 50%;" id="myChart"></canvas>
+</div>
+<!-- Render the rest of the ChangeList view -->
+{{ block.super }}
+{% endblock %}

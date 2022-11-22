@@ -1,4 +1,23 @@
 {% load static %}
+
+<script>
+    var num = 0
+
+    function insert()
+    {
+        num += 1
+       var obj = document.getElementById("add");
+       obj.insertAdjacentHTML("BeforeEnd", 
+       '<fieldset>\
+         <legend><h1>파일 업로드</h1></legend> \
+         <input name="files' + num + '" type="file" >\
+        </fieldset> \
+        <div>정답 : <input name="answer' + num + '" type="text"></div>\
+        '
+       );
+    }
+</script>
+
 <link rel="stylesheet" href="{% static 'language/style.css' %}">
 <form action="upload" method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -7,6 +26,11 @@
         <input name="files" type="file" >
        
     </fieldset>
-    <div>정답 : <input name="answer" type="text"></div>
+    <div>정답 : <input name="answer0" type="text"></div>
+
+    <a id=add> </a>
+
+    <input type="button" onclick="insert()" value="추가">
+
     <div><input type="submit" value="업로드"></div>
     </form>

@@ -10,7 +10,7 @@ from keras.models import load_model
 
 
 # from pybo.model import Result
-from .models import Result
+from .models import Result, AiModel, ModelPerformance
 
 # Create your views here.
 
@@ -23,52 +23,93 @@ def upload(request):
     if request.method == 'POST' and request.FILES['files']:
 
         #form에서 전송한 파일을 획득한다. 
-        file = request.FILES['files']
+        #file = request.FILES['files']
 
-
-        # logger.error('file', file)
         # class names 준비
         class_names = list(string.ascii_lowercase)
         class_names = np.array(class_names)
 
-        # 모델 로딩
-        model_path = settings.MODEL_DIR +'/sign_model.h5'
-        model = load_model(model_path)
+        result_list = []
+        model_names = []
+        models = []
+        
+        # 모델 로딩    
+        ai_models = AiModel.objects.all()
+        
+        for ai_model in ai_models:         
+            if not ai_model.model_selected :
+                continue
+            model_path = settings.MEDIA_ROOT + '/' +  str(ai_model.model)
+            models.append([load_model(model_path),ai_model])
+            
+        for i,key in enumerate(request.FILES):
+            file = request.FILES[key]
+            ans =  request.POST.get('answer' + str(i) , '')
+            
+            tmp_list = []
+                 
+            for m, ai_model in models:
+                        
+                #model_path = settings.MODEL_DIR +'/sign_model.h5'
+                #model_path = settings.MEDIA_ROOT + '/' +  model_file
+                #model = load_model(model_path)
+                #model_names.append(ai_model)
+                
+
+                # history 저장을 위해 객체에 담아서 DB에 저장한다.
+                # 이때 파일시스템에 저장도 된다.
+                result = Result()
+                result.answer = ans
+                result.image = file
+                result.pub_date = timezone.datetime.now()
+                result.save()
 
 
-        # history 저장을 위해 객체에 담아서 DB에 저장한다.
-        # 이때 파일시스템에 저장도 된다.
-        result = Result()
-        result.answer = request.POST.get('answer', '')
-        result.image = file
-        result.pub_date = timezone.datetime.now()
-        result.save()
+                # 흑백으로 읽기
+                img = cv2.imread(result.image.path, cv2.IMREAD_GRAYSCALE)
 
+                # 크기 조정
+                img = cv2.resize(img, (28, 28))
 
-        # 흑백으로 읽기
-        img = cv2.imread(result.image.path, cv2.IMREAD_GRAYSCALE)
+                # input shape 맞추기
+                test_sign = img.reshape(1, 28, 28, 1)
 
-        # 크기 조정
-        img = cv2.resize(img, (28, 28))
+                # 스케일링
+                test_sign = test_sign / 255.
 
-        # input shape 맞추기
-        test_sign = img.reshape(1, 28, 28, 1)
+                # 예측 : 결국 이 결과를 얻기 위해 모든 것을 했다.
+                pred = m.predict(test_sign)
+                pred_1 = pred.argmax(axis=1)
 
-        # 스케일링
-        test_sign = test_sign / 255.
-
-        # 예측 : 결국 이 결과를 얻기 위해 모든 것을 했다.
-        pred = model.predict(test_sign)
-        pred_1 = pred.argmax(axis=1)
-
-        #결과를 DB에 저장한다.
-        result.result = class_names[pred_1][0]
-        result.save()
-
-
-
+                #결과를 DB에 저장한다.
+                result.result = class_names[pred_1][0]
+                result.save()
+                tmp_list.append([result,ai_model])
+                
+                prefom_qs = ModelPerformance.objects.filter(model_name__exact=str(ai_model.model_name))
+                
+                if len(prefom_qs) > 0:
+                    prefom = prefom_qs[0]              
+                    prefom.total = str(int(prefom.total) + 1)
+                    if class_names[pred_1][0] == result.answer :
+                        prefom.sucesse = int(prefom.sucesse) + 1
+                else:
+                    prefom = ModelPerformance()
+                    prefom.model_name = str(ai_model.model_name)
+                    prefom.total = 1
+                    if class_names[pred_1][0] == result.answer :
+                        prefom.sucesse = 1
+                
+                prefom.acc = int(prefom.sucesse) / int(prefom.total) * 100
+                
+                prefom.save()
+                
+            result_list.append([result.image.url, ans, tmp_list])
+                
+        print(result_list)
         context = {
-            'result': result,
+            #'result': result,
+            'result': result_list   
         }
 
 
