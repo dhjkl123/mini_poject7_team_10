@@ -1,4 +1,5 @@
 from django.db import models
+from django.db import transaction
 # from picklefield.fields import PickledObjectField
 
 # Create your models here.
@@ -28,3 +29,10 @@ class AI_Model(models.Model):
     def __str__(self):
         return f'Name : {self.model_Name}, Date : {self.create_Date}'
 
+    def save(self, *args, **kwargs):
+        if not self.is_selected:
+            return super(AI_Model, self).save(*args, **kwargs)
+        with transaction.atomic():
+            AI_Model.objects.filter(
+                is_selected=True).update(is_selected=False)
+            return super(AI_Model, self).save(*args, **kwargs)
