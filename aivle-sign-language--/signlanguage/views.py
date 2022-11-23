@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 import string
 from keras.models import load_model
-
+from django.db import connection
 
 # from pybo.model import Result
 from .models import Result, AI_Model
@@ -20,6 +20,11 @@ def index(request):
     return render(request, 'language/index.html')
 
 def upload(request):
+        #db 조회하여 모델 선택
+    cursor = connection.cursor()
+    cursor.execute("select address from account_profile where id=1")
+    print(cursor.fetchall())
+    results = []
     if request.method == 'POST' and request.FILES['files']:
 
         #todo form에서 전송한 파일을 획득한다.
@@ -80,6 +85,7 @@ def upload(request):
         logger.error(('Something went wrong!!',test))
 
     return render(request, 'language/result.html', context)    
+
 
 def modelFiles(request):
     fileList = AI_Model.objects.all()
