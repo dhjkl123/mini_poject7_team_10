@@ -7,6 +7,7 @@ class Result(models.Model):
     image = models.ImageField(blank=True)
     answer = models.CharField(max_length=10)
     result = models.CharField(max_length=10)
+    #테스트 결과용
     test = models.CharField(max_length=10)
     pub_date = models.DateTimeField('date published')
 
