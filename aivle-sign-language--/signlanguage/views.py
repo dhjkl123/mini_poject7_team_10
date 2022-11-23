@@ -21,6 +21,7 @@ def index(request):
 
 def upload(request):
         #db 조회하여 모델 선택
+    #db 조회하여 모델 선택
     cursor = connection.cursor()
     cursor.execute('''select * from account_profile where id=1''')
     row_headers=[x[0] for x in cursor.description] #this will extract row headers
